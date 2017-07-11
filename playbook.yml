@@ -1,0 +1,43 @@
+---
+- name:  install lamp with phpmyadmin playbook
+  hosts:  all
+  tasks:
+    - name: installing python
+      apt: name=python-minimal state=present update_cache=yes	
+
+    - name:  Install apache, mysql, php
+      apt:  name={{item}} state=latest update_cache=yes
+      with_items:
+        - apache2
+        - php
+        - libapache2-mod-php
+        - mysql-server
+        - php-mysql
+        - phpmyadmin
+        - python-mysqldb
+    - name:  Apache is started
+      service:  name=apache2 state=started enabled=yes
+
+    - name: mysql is started
+      service: name=mysql state=started enabled=yes
+    - name: add user to mysql server
+      mysql_user:
+        name: admin
+        password: admin
+        priv: localhost.*:ALL
+        host: localhost
+        state: present 
+    - name: add config for phpmyadmin
+      lineinfile: dest=/etc/apache2/apache2.conf
+                  regexp=''
+                  insertafter=EOF
+                  line='Include /etc/phpmyadmin/apache.conf'        
+      notify: restart apache
+
+    - name: copy index.html
+      copy: src=index.php dest=/var/www/html
+      notify: restart apache
+
+  handlers:
+    - name: restart apache
+      service: name=apache2 state=restarted 
